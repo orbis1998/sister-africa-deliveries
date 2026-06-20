@@ -62,6 +62,7 @@ export default defineConfig(({ mode }) => ({
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2,webmanifest}"],
         navigateFallback: "/index.html",
         cleanupOutdatedCaches: true,
+        importScripts: ["/push-sw.js"],
       },
       devOptions: {
         enabled: true,

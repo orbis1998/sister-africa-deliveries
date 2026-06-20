@@ -4,6 +4,7 @@ import { useAuth } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { requestPushPermission, showLocalNotification, usePwaInstall } from "@/hooks/use-pwa-install";
+import { isVapidConfigured, isWebPushSupported, subscribeToWebPush } from "@/lib/push";
 import { toast } from "sonner";
 
 interface NotificationItem {
@@ -28,12 +29,34 @@ export default function Notifications() {
     "Notification" in window ? Notification.permission : "unsupported"
   );
 
+  const [pushReady, setPushReady] = useState(false);
+
   const enableNotifications = async () => {
+    if (!courier?.id) return;
+
+    if (isWebPushSupported() && isVapidConfigured()) {
+      const result = await subscribeToWebPush(courier.id);
+      setPushPermission(result === "granted" ? "granted" : result === "denied" ? "denied" : "default");
+      setPushReady(result === "granted");
+      if (result === "granted") toast.success("Notifications push activées (écran verrouillé)");
+      else if (result === "denied") toast.error("Notifications refusées dans le navigateur.");
+      else if (result === "missing_vapid") toast.error("Clé VAPID manquante côté serveur (Vercel).");
+      else toast.error("Impossible d'activer les notifications push.");
+      return;
+    }
+
     const result = await requestPushPermission();
     setPushPermission(result === "unsupported" ? "unsupported" : result);
-    if (result === "granted") toast.success("Notifications activées");
+    setPushReady(result === "granted");
+    if (result === "granted") toast.success("Notifications activées (app ouverte uniquement)");
     if (result === "denied") toast.error("Notifications refusées dans le navigateur.");
   };
+
+  useEffect(() => {
+    if (!courier?.id || Notification.permission !== "granted") return;
+    if (!isWebPushSupported() || !isVapidConfigured()) return;
+    void subscribeToWebPush(courier.id).then((r) => setPushReady(r === "granted"));
+  }, [courier?.id]);
 
   useEffect(() => {
     if (!courier?.id) return;
@@ -122,8 +145,22 @@ export default function Notifications() {
           <p className="mt-2 text-xs text-muted-foreground">
             Installe d'abord l'application (bannière en bas de l'écran) pour activer les alertes push.
           </p>
+        ) : pushPermission === "granted" && pushReady ? (
+          <p className="mt-2 text-xs text-muted-foreground">
+            Push Web activé — alertes sur l'écran verrouillé et la barre de notifications.
+          </p>
         ) : pushPermission === "granted" ? (
-          <p className="mt-2 text-xs text-muted-foreground">Notifications push activées pour cette appareil.</p>
+          <>
+            <p className="mt-2 text-xs text-muted-foreground">
+              Permission accordée. Finalise l'abonnement push pour l'écran verrouillé.
+            </p>
+            <Button
+              onClick={() => void enableNotifications()}
+              className="mt-3 h-9 rounded-full bg-primary px-4 text-xs text-primary-foreground hover:bg-primary/90"
+            >
+              Activer le push VAPID
+            </Button>
+          </>
         ) : pushPermission === "denied" ? (
           <p className="mt-2 text-xs text-muted-foreground">
             Notifications bloquées. Autorise-les dans les réglages du navigateur ou du téléphone.

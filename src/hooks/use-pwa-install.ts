@@ -72,16 +72,19 @@ export async function requestPushPermission() {
 
 export function showLocalNotification(title: string, body: string) {
   if (!("Notification" in window) || Notification.permission !== "granted") return;
-  if ("serviceWorker" in navigator && navigator.serviceWorker.controller) {
+  const options: NotificationOptions = {
+    body,
+    icon: "/icon-192.png",
+    badge: "/icon-192.png",
+    tag: "tsa-delivery",
+    data: { url: "/notifications" },
+    renotify: true,
+  };
+  if ("serviceWorker" in navigator) {
     void navigator.serviceWorker.ready.then((registration) => {
-      registration.showNotification(title, {
-        body,
-        icon: "/icon-192.png",
-        badge: "/icon-192.png",
-        tag: "tsa-delivery",
-      });
+      void registration.showNotification(title, options);
     });
     return;
   }
-  new Notification(title, { body, icon: "/icon-192.png" });
+  new Notification(title, options);
 }

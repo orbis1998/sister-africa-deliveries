@@ -1,10 +1,13 @@
 import { useState } from "react";
 import { Download, Share, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { installPromptDismissedKey, requestPushPermission, usePwaInstall } from "@/hooks/use-pwa-install";
+import { installPromptDismissedKey, usePwaInstall } from "@/hooks/use-pwa-install";
+import { subscribeToWebPush } from "@/lib/push";
+import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
 
 export function PwaInstallPrompt() {
+  const { courier } = useAuth();
   const { shouldShowPrompt, canInstall, install, isIOS } = usePwaInstall();
   const [dismissed, setDismissed] = useState(() => localStorage.getItem(installPromptDismissedKey) === "1");
 
@@ -15,8 +18,10 @@ export function PwaInstallPrompt() {
       const { outcome } = await install();
       if (outcome === "accepted") {
         toast.success("Application installée");
-        const permission = await requestPushPermission();
-        if (permission === "granted") toast.success("Notifications activées");
+        if (courier?.id) {
+          const push = await subscribeToWebPush(courier.id);
+          if (push === "granted") toast.success("Notifications push activées");
+        }
       }
       return;
     }
