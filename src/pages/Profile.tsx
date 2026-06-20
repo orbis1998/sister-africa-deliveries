@@ -1,4 +1,4 @@
-import { LogOut, Phone, MapPin, Shield } from "lucide-react";
+import { LogOut, Phone, MapPin, Shield, type LucideIcon } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
@@ -23,7 +23,7 @@ export default function Profile() {
       <div className="mt-8 space-y-3">
         <Info icon={Phone} label="Téléphone" value={courier.phone} />
         <Info icon={MapPin} label="Zone de tournée" value={courier.zone} />
-        <Info icon={Shield} label="Sécurité" value="Session chiffrée · Edge function auth" />
+        <Info icon={Shield} label="Sécurité" value="Session Supabase · Edge Function auth" />
       </div>
 
       <Button
@@ -44,7 +44,7 @@ export default function Profile() {
   );
 }
 
-function Info({ icon: Icon, label, value }: { icon: any; label: string; value: string }) {
+function Info({ icon: Icon, label, value }: { icon: LucideIcon; label: string; value: string }) {
   return (
     <div className="flex items-center gap-3 rounded-2xl border border-border/60 bg-card/60 p-4">
       <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">

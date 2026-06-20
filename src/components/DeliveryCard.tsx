@@ -1,9 +1,11 @@
 import { Link } from "react-router-dom";
 import { MapPin, Package, ArrowUpRight, Clock } from "lucide-react";
-import { type Delivery, formatFCFA, formatTime } from "@/lib/mockData";
+import { type Delivery, formatTime } from "@/lib/deliveryTypes";
+import { detectMarketCountry, formatCashAmount } from "@/lib/currency";
 import { StatusBadge } from "./StatusBadge";
 
 export function DeliveryCard({ d }: { d: Delivery }) {
+  const market = detectMarketCountry(d.city, d.neighborhood);
   return (
     <Link
       to={`/livraisons/${d.id}`}
@@ -40,7 +42,7 @@ export function DeliveryCard({ d }: { d: Delivery }) {
             <Clock className="h-3 w-3" /> {formatTime(d.scheduled_for)}
           </span>
           <span className="font-medium text-primary">
-            {d.payment_method === "paye" ? "Payée" : formatFCFA(d.amount_to_collect_fcfa)}
+            {d.payment_method === "paye" ? "Payée" : formatCashAmount(d.amount_to_collect_fcfa, market)}
           </span>
         </div>
         <ArrowUpRight className="h-4 w-4 text-muted-foreground transition group-hover:text-primary" />

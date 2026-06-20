@@ -11,10 +11,12 @@ import {
   CheckCircle2,
   XCircle,
   Camera,
+  type LucideIcon,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { useDelivery, updateDeliveryStatus } from "@/lib/deliveries";
-import { formatDateTime, formatFCFA, STATUS_LABEL, type DeliveryStatus } from "@/lib/mockData";
+import { formatDateTime, STATUS_LABEL, type DeliveryStatus } from "@/lib/deliveryTypes";
+import { detectMarketCountry, formatCashAmount } from "@/lib/currency";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -48,7 +50,15 @@ export default function DeliveryDetail() {
   const [reason, setReason] = useState("");
   const [proofNote, setProofNote] = useState("");
 
-  if (!d) {
+  if (d === undefined) {
+    return (
+      <div className="px-5 pt-10 text-center">
+        <p className="text-muted-foreground">Chargement de la livraison…</p>
+      </div>
+    );
+  }
+
+  if (d === null) {
     return (
       <div className="px-5 pt-10 text-center">
         <p className="text-muted-foreground">Livraison introuvable.</p>
@@ -59,24 +69,28 @@ export default function DeliveryDetail() {
     );
   }
 
+  const market = detectMarketCountry(d.city, d.neighborhood, courier?.zone);
   const next = NEXT[d.status] ?? [];
   const isClosed = ["livre", "echec", "retour"].includes(d.status);
 
-  const advance = (status: DeliveryStatus) => {
+  const advance = async (status: DeliveryStatus) => {
     if (status === "livre") return setProofOpen(true);
-    updateDeliveryStatus(d.id, status, courier!.full_name);
+    const { error } = await updateDeliveryStatus(d.id, status, courier!.full_name);
+    if (error) return toast.error(error);
     toast.success(`Statut mis à jour : ${STATUS_LABEL[status]}`);
   };
 
-  const confirmDelivered = () => {
-    updateDeliveryStatus(d.id, "livre", courier!.full_name, proofNote || "Remis en main propre");
+  const confirmDelivered = async () => {
+    const { error } = await updateDeliveryStatus(d.id, "livre", courier!.full_name, proofNote || "Remis en main propre");
+    if (error) return toast.error(error);
     setProofOpen(false);
     toast.success("Livraison confirmée ✓");
   };
 
-  const reportFail = () => {
+  const reportFail = async () => {
     if (!reason.trim()) return toast.error("Indiquez un motif d'échec.");
-    updateDeliveryStatus(d.id, "echec", courier!.full_name, reason.trim());
+    const { error } = await updateDeliveryStatus(d.id, "echec", courier!.full_name, reason.trim());
+    if (error) return toast.error(error);
     setFailOpen(false);
     setReason("");
     toast("Échec enregistré. Le dispatch sera notifié.");
@@ -131,7 +145,7 @@ export default function DeliveryDetail() {
           />
           <Row
             label="À collecter"
-            value={d.payment_method === "paye" ? "—" : formatFCFA(d.amount_to_collect_fcfa)}
+            value={d.payment_method === "paye" ? "—" : formatCashAmount(d.amount_to_collect_fcfa, market)}
             highlight={d.payment_method !== "paye"}
           />
         </Section>
@@ -240,7 +254,7 @@ export default function DeliveryDetail() {
   );
 }
 
-function Section({ title, icon: Icon, children }: { title: string; icon?: any; children: React.ReactNode }) {
+function Section({ title, icon: Icon, children }: { title: string; icon?: LucideIcon; children: React.ReactNode }) {
   return (
     <section className="mt-6 rounded-2xl border border-border/60 bg-card/60 p-4">
       <div className="mb-3 flex items-center gap-2">

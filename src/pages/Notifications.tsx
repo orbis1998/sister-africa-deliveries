@@ -1,12 +1,58 @@
+import { useEffect, useState } from "react";
 import { Bell, Package, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { useAuth } from "@/lib/auth";
+import { supabase } from "@/lib/supabase";
 
-const items = [
-  { icon: Package, color: "text-info", title: "Nouvelle livraison assignée", body: "TSA-10242 — Bénédicte Okoye, Limete", at: "Il y a 1 h" },
-  { icon: AlertTriangle, color: "text-warning", title: "Trafic dense sur Bd Lumumba", body: "Prévoyez +15 min sur l'itinéraire prévu.", at: "Il y a 2 h" },
-  { icon: CheckCircle2, color: "text-success", title: "Paiement encaissé confirmé", body: "TSA-10241 — 30 000 FCFA reçus", at: "Hier" },
-];
+interface NotificationItem {
+  id: string;
+  type?: "delivery" | "warning" | "payment" | string;
+  title: string;
+  body: string;
+  created_at: string;
+}
+
+const iconByType = {
+  delivery: { icon: Package, color: "text-info" },
+  warning: { icon: AlertTriangle, color: "text-warning" },
+  payment: { icon: CheckCircle2, color: "text-success" },
+};
 
 export default function Notifications() {
+  const { courier } = useAuth();
+  const [items, setItems] = useState<NotificationItem[]>([]);
+
+  useEffect(() => {
+    if (!courier?.id) return;
+
+    let alive = true;
+    const load = async () => {
+      const { data, error } = await supabase
+        .from("notifications")
+        .select("id,type,title,body,created_at")
+        .eq("courier_id", courier.id)
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        console.error("Unable to load notifications", error);
+        if (alive) setItems([]);
+        return;
+      }
+
+      if (alive) setItems((data ?? []) as NotificationItem[]);
+    };
+
+    void load();
+    const channel = supabase
+      .channel(`notifications-${courier.id}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "notifications" }, () => void load())
+      .subscribe();
+
+    return () => {
+      alive = false;
+      void supabase.removeChannel(channel);
+    };
+  }, [courier?.id]);
+
   return (
     <div className="px-5 pb-6 pt-5 animate-fade-up">
       <p className="text-[11px] uppercase tracking-[0.25em] text-primary/80">Centre d'alertes</p>
@@ -15,16 +61,29 @@ export default function Notifications() {
       </h1>
 
       <div className="mt-6 space-y-3">
-        {items.map((n, i) => (
-          <div key={i} className="flex gap-3 rounded-2xl border border-border/60 bg-card/60 p-4">
-            <div className={`mt-0.5 ${n.color}`}><n.icon className="h-5 w-5" /></div>
-            <div className="flex-1">
-              <p className="text-sm font-medium text-foreground">{n.title}</p>
-              <p className="mt-0.5 text-sm text-muted-foreground">{n.body}</p>
-              <p className="mt-1.5 text-[11px] uppercase tracking-wider text-muted-foreground/80">{n.at}</p>
-            </div>
+        {items.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-border/70 bg-card/40 p-10 text-center">
+            <p className="font-display text-2xl text-muted-foreground">Aucune notification.</p>
           </div>
-        ))}
+        ) : (
+          items.map((n) => {
+            const config = iconByType[n.type as keyof typeof iconByType] ?? iconByType.delivery;
+            const Icon = config.icon;
+
+            return (
+              <div key={n.id} className="flex gap-3 rounded-2xl border border-border/60 bg-card/60 p-4">
+                <div className={`mt-0.5 ${config.color}`}><Icon className="h-5 w-5" /></div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-foreground">{n.title}</p>
+                  <p className="mt-0.5 text-sm text-muted-foreground">{n.body}</p>
+                  <p className="mt-1.5 text-[11px] uppercase tracking-wider text-muted-foreground/80">
+                    {new Date(n.created_at).toLocaleString("fr-FR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
+                  </p>
+                </div>
+              </div>
+            );
+          })
+        )}
       </div>
 
       <div className="mt-8 rounded-2xl border border-dashed border-primary/30 bg-primary/5 p-4 text-center">

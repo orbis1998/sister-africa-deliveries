@@ -1,4 +1,4 @@
-import { STATUS_COLOR, STATUS_LABEL, type DeliveryStatus } from "@/lib/mockData";
+import { STATUS_COLOR, STATUS_LABEL, type DeliveryStatus } from "@/lib/deliveryTypes";
 import { cn } from "@/lib/utils";
 
 export function StatusBadge({ status, className }: { status: DeliveryStatus; className?: string }) {

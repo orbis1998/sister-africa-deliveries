@@ -1,48 +1,128 @@
-// Deliveries data layer — placeholder for Supabase queries.
-// Real flow: supabase.from('deliveries').select().eq('courier_id', courier.id)
-//            supabase.channel('deliveries').on('postgres_changes', ...) for realtime.
 import { useEffect, useState } from "react";
-import {
-  MOCK_DELIVERIES,
-  type Delivery,
-  type DeliveryStatus,
-  type DeliveryEvent,
-} from "./mockData";
+import { type Delivery, type DeliveryStatus, type DeliveryEvent } from "./deliveryTypes";
+import { supabase } from "./supabase";
 
-let store: Delivery[] = [...MOCK_DELIVERIES];
-const listeners = new Set<() => void>();
-const emit = () => listeners.forEach((l) => l());
+type DeliveryRow = Omit<Delivery, "events"> & {
+  events?: DeliveryEvent[] | null;
+  delivery_events?: DeliveryEvent[] | null;
+};
+
+const listeners = new Set<() => void | Promise<void>>();
+const emit = () => listeners.forEach((l) => void l());
+
+const selectDelivery = "*, events:delivery_events(*)";
+
+function mapDelivery(row: DeliveryRow): Delivery {
+  const events = row.events ?? row.delivery_events ?? [];
+  return {
+    ...row,
+    events: [...events].sort((a, b) => +new Date(a.at) - +new Date(b.at)),
+  };
+}
+
+async function fetchMyDeliveries(courierId: string) {
+  const { data, error } = await supabase
+    .from("deliveries")
+    .select(selectDelivery)
+    .eq("courier_id", courierId)
+    .order("scheduled_for", { ascending: true });
+
+  if (error) throw error;
+  return ((data ?? []) as DeliveryRow[]).map(mapDelivery);
+}
+
+async function fetchDelivery(id: string) {
+  const { data, error } = await supabase
+    .from("deliveries")
+    .select(selectDelivery)
+    .eq("id", id)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data ? mapDelivery(data as DeliveryRow) : null;
+}
+
+function subscribeToDeliveryChanges(onChange: () => void | Promise<void>) {
+  const channel = supabase
+    .channel("delivery-data")
+    .on("postgres_changes", { event: "*", schema: "public", table: "deliveries" }, onChange)
+    .on("postgres_changes", { event: "*", schema: "public", table: "delivery_events" }, onChange)
+    .subscribe();
+
+  return () => {
+    void supabase.removeChannel(channel);
+  };
+}
 
 export function useMyDeliveries(courierId: string | undefined) {
-  const [data, setData] = useState<Delivery[]>(() =>
-    courierId ? store.filter((d) => d.courier_id === courierId) : []
-  );
+  const [data, setData] = useState<Delivery[]>([]);
+
   useEffect(() => {
-    const sync = () =>
-      setData(courierId ? store.filter((d) => d.courier_id === courierId) : []);
+    if (!courierId) {
+      setData([]);
+      return;
+    }
+
+    let alive = true;
+    const sync = async () => {
+      try {
+        const rows = await fetchMyDeliveries(courierId);
+        if (alive) setData(rows);
+      } catch (error) {
+        console.error("Unable to load deliveries", error);
+        if (alive) setData([]);
+      }
+    };
+
     listeners.add(sync);
-    sync();
+    void sync();
+    const unsubscribe = subscribeToDeliveryChanges(sync);
+
     return () => {
+      alive = false;
       listeners.delete(sync);
+      unsubscribe();
     };
   }, [courierId]);
+
   return data;
 }
 
 export function useDelivery(id: string | undefined) {
-  const [d, setD] = useState<Delivery | undefined>(() => store.find((x) => x.id === id));
+  const [d, setD] = useState<Delivery | null | undefined>(undefined);
+
   useEffect(() => {
-    const sync = () => setD(store.find((x) => x.id === id));
+    if (!id) {
+      setD(null);
+      return;
+    }
+
+    let alive = true;
+    const sync = async () => {
+      try {
+        const row = await fetchDelivery(id);
+        if (alive) setD(row);
+      } catch (error) {
+        console.error("Unable to load delivery", error);
+        if (alive) setD(null);
+      }
+    };
+
     listeners.add(sync);
-    sync();
+    void sync();
+    const unsubscribe = subscribeToDeliveryChanges(sync);
+
     return () => {
+      alive = false;
       listeners.delete(sync);
+      unsubscribe();
     };
   }, [id]);
+
   return d;
 }
 
-export function updateDeliveryStatus(
+export async function updateDeliveryStatus(
   id: string,
   status: DeliveryStatus,
   by: string,
@@ -55,8 +135,29 @@ export function updateDeliveryStatus(
     by,
     note,
   };
-  store = store.map((d) =>
-    d.id === id ? { ...d, status, events: [...d.events, evt] } : d
-  );
+
+  const { error: deliveryError } = await supabase
+    .from("deliveries")
+    .update({ status })
+    .eq("id", id);
+
+  if (deliveryError) {
+    return { error: deliveryError.message };
+  }
+
+  const { error: eventError } = await supabase.from("delivery_events").insert({
+    id: evt.id,
+    delivery_id: id,
+    at: evt.at,
+    status: evt.status,
+    by: evt.by,
+    note: evt.note,
+  });
+
+  if (eventError) {
+    return { error: eventError.message };
+  }
+
   emit();
+  return {};
 }

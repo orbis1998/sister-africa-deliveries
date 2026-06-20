@@ -1,7 +1,6 @@
-// Auth context — placeholder for Supabase Edge Function `courier-login`.
-// Real flow: POST { badge_id, password } -> { token, courier } ; token stored in memory + localStorage.
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
-import { MOCK_COURIER, type Courier } from "./mockData";
+import { type Courier } from "./deliveryTypes";
+import { supabase } from "./supabase";
 
 interface AuthState {
   courier: Courier | null;
@@ -13,6 +12,11 @@ interface AuthState {
 const AuthCtx = createContext<AuthState | undefined>(undefined);
 const STORAGE_KEY = "tsa.delivery.session";
 
+interface CourierLoginResponse {
+  courier?: Courier;
+  error?: string;
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [courier, setCourier] = useState<Courier | null>(null);
   const [loading, setLoading] = useState(true);
@@ -21,24 +25,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) setCourier(JSON.parse(raw));
-    } catch {}
+    } catch {
+      localStorage.removeItem(STORAGE_KEY);
+    }
     setLoading(false);
   }, []);
 
   const signIn: AuthState["signIn"] = async (badgeId, password) => {
-    // PLACEHOLDER: replace with supabase.functions.invoke('courier-login', { body: { badge_id, password } })
-    await new Promise((r) => setTimeout(r, 700));
     if (!badgeId.trim() || password.length < 4) {
       return { error: "Identifiants invalides." };
     }
-    // demo: any badge ID accepted, returns mock courier identity
-    const c: Courier = { ...MOCK_COURIER, badge_id: badgeId.toUpperCase() };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(c));
-    setCourier(c);
+
+    const { data, error } = await supabase.rpc("courier_login", {
+      p_badge_id: badgeId.trim().toUpperCase(),
+      p_password: password,
+    });
+
+    if (error) {
+      return { error: error.message || "Connexion impossible. Vérifiez vos identifiants." };
+    }
+
+    const result = data as CourierLoginResponse | null;
+
+    if (result?.error) {
+      return { error: result.error };
+    }
+
+    if (!result?.courier) {
+      return { error: "Réponse de connexion invalide." };
+    }
+
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(result.courier));
+    setCourier(result.courier);
     return {};
   };
 
   const signOut = () => {
+    void supabase.auth.signOut();
     localStorage.removeItem(STORAGE_KEY);
     setCourier(null);
   };

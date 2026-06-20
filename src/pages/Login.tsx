@@ -39,7 +39,7 @@ export default function Login() {
             Espace <em className="text-primary not-italic">coursier</em>
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Connectez-vous avec votre identifiant de badge pour démarrer votre tournée.
+            Connectez-vous avec le badge livreur créé par l'administration pour démarrer votre tournée.
           </p>
         </div>
 
@@ -55,7 +55,7 @@ export default function Login() {
                 autoComplete="username"
                 value={badge}
                 onChange={(e) => setBadge(e.target.value)}
-                placeholder="TSA-2041"
+                placeholder="LIV001"
                 className="h-12 rounded-xl border-border/70 bg-input/50 pl-10 font-mono uppercase tracking-wider"
                 required
               />
@@ -91,7 +91,7 @@ export default function Login() {
           </Button>
 
           <p className="pt-2 text-center text-[11px] text-muted-foreground">
-            Connexion sécurisée · Vos identifiants ne quittent jamais l'appareil sans chiffrement.
+            Connexion sécurisée via Supabase.
           </p>
         </form>
       </div>

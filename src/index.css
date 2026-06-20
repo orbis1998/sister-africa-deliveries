@@ -66,13 +66,13 @@
   html, body, #root { @apply h-full; }
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: 'Outfit', system-ui, sans-serif;
-    font-feature-settings: 'ss01', 'cv01';
+    font-family: "Inter", system-ui, sans-serif;
+    font-feature-settings: "cv01", "ss01";
   }
   h1, h2, h3, .font-display {
-    font-family: 'Cormorant Garamond', 'Times New Roman', serif;
-    font-weight: 500;
-    letter-spacing: -0.01em;
+    font-family: "Tenor Sans", "Times New Roman", serif;
+    font-weight: 400;
+    letter-spacing: 0.01em;
   }
 }
 
