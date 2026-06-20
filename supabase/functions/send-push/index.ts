@@ -13,11 +13,13 @@ if (vapidPublic && vapidPrivate) {
 }
 
 interface PushPayload {
+  id?: string;
   courier_id?: string;
   title?: string;
   body?: string;
   type?: string;
   record?: {
+    id?: string;
     courier_id?: string;
     title?: string;
     body?: string;
@@ -48,7 +50,8 @@ Deno.serve(async (req) => {
   const courierId = record.courier_id;
   const title = record.title;
   const body = record.body ?? "";
-  const type = record.type ?? "tsa-delivery";
+  const type = record.type ?? "delivery";
+  const notificationId = record.id;
 
   if (!courierId || !title) {
     return new Response(JSON.stringify({ error: "Missing courier_id or title" }), { status: 400 });
@@ -73,12 +76,13 @@ Deno.serve(async (req) => {
   const pushBody = JSON.stringify({
     title,
     body,
-    tag: type,
+    tag: `tsa-${type}-${notificationId ?? Date.now()}`,
     url: "/notifications",
   });
 
   let sent = 0;
   const staleEndpoints: string[] = [];
+  const errors: string[] = [];
 
   for (const sub of subs) {
     try {
@@ -87,11 +91,17 @@ Deno.serve(async (req) => {
           endpoint: sub.endpoint,
           keys: { p256dh: sub.p256dh, auth: sub.auth },
         },
-        pushBody
+        pushBody,
+        {
+          TTL: 60 * 60 * 24,
+          urgency: "high",
+        }
       );
       sent += 1;
     } catch (err) {
       const statusCode = (err as { statusCode?: number }).statusCode;
+      const message = (err as { message?: string }).message ?? String(err);
+      errors.push(`${statusCode ?? "?"}: ${message.slice(0, 120)}`);
       if (statusCode === 404 || statusCode === 410) staleEndpoints.push(sub.endpoint);
       console.error("push failed", sub.endpoint, err);
     }
@@ -101,7 +111,7 @@ Deno.serve(async (req) => {
     await supabase.from("push_subscriptions").delete().in("endpoint", staleEndpoints);
   }
 
-  return new Response(JSON.stringify({ ok: true, sent }), {
+  return new Response(JSON.stringify({ ok: true, sent, errors: errors.length ? errors : undefined }), {
     headers: { "Content-Type": "application/json" },
   });
 });

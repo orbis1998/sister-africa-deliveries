@@ -1,7 +1,12 @@
 /* Web Push handlers — loaded by the Workbox service worker via importScripts */
 
 self.addEventListener("push", function (event) {
-  var payload = { title: "TSA Delivery", body: "", url: "/notifications", tag: "tsa-delivery" };
+  var payload = {
+    title: "TSA Delivery",
+    body: "",
+    url: "/notifications",
+    tag: "tsa-delivery-" + Date.now(),
+  };
 
   try {
     if (event.data) {
@@ -23,6 +28,9 @@ self.addEventListener("push", function (event) {
       tag: payload.tag,
       data: { url: payload.url },
       renotify: true,
+      requireInteraction: true,
+      vibrate: [200, 100, 200],
+      silent: false,
     })
   );
 });

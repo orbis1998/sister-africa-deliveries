@@ -14,6 +14,7 @@ begin
     url := 'https://plhdpaqdtukhcvfvrnxa.supabase.co/functions/v1/send-push',
     headers := jsonb_build_object('Content-Type', 'application/json'),
     body := jsonb_build_object(
+      'id', NEW.id,
       'courier_id', NEW.courier_id,
       'title', NEW.title,
       'body', NEW.body,

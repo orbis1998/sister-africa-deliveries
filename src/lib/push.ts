@@ -38,7 +38,31 @@ export async function subscribeToWebPush(courierId: string): Promise<PushSubscri
 
   try {
     const registration = await navigator.serviceWorker.ready;
-    let subscription = await registration.pushManager.getSubscription();
+
+    // Keep a single active subscription per device (avoids duplicate stale endpoints).
+    const existing = await registration.pushManager.getSubscription();
+    if (existing) {
+      const existingJson = existing.toJSON();
+      if (existingJson.endpoint && existingJson.keys?.p256dh && existingJson.keys?.auth) {
+        const { error: existingError } = await supabase.from("push_subscriptions").upsert(
+          {
+            courier_id: courierId,
+            endpoint: existingJson.endpoint,
+            p256dh: existingJson.keys.p256dh,
+            auth: existingJson.keys.auth,
+            user_agent: navigator.userAgent,
+          },
+          { onConflict: "courier_id,endpoint" }
+        );
+        if (existingError) {
+          console.error("Failed to save push subscription", existingError);
+          return "error";
+        }
+        return "granted";
+      }
+    }
+
+    let subscription = existing;
 
     if (!subscription) {
       subscription = await registration.pushManager.subscribe({
