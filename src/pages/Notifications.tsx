@@ -2,6 +2,9 @@ import { useEffect, useState } from "react";
 import { Bell, Package, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
+import { Button } from "@/components/ui/button";
+import { requestPushPermission, showLocalNotification, usePwaInstall } from "@/hooks/use-pwa-install";
+import { toast } from "sonner";
 
 interface NotificationItem {
   id: string;
@@ -19,7 +22,18 @@ const iconByType = {
 
 export default function Notifications() {
   const { courier } = useAuth();
+  const { installed } = usePwaInstall();
   const [items, setItems] = useState<NotificationItem[]>([]);
+  const [pushPermission, setPushPermission] = useState<NotificationPermission | "unsupported">(
+    "Notification" in window ? Notification.permission : "unsupported"
+  );
+
+  const enableNotifications = async () => {
+    const result = await requestPushPermission();
+    setPushPermission(result === "unsupported" ? "unsupported" : result);
+    if (result === "granted") toast.success("Notifications activées");
+    if (result === "denied") toast.error("Notifications refusées dans le navigateur.");
+  };
 
   useEffect(() => {
     if (!courier?.id) return;
@@ -41,9 +55,25 @@ export default function Notifications() {
       if (alive) setItems((data ?? []) as NotificationItem[]);
     };
 
+    const onInsert = (payload: { new: Record<string, unknown> }) => {
+      void load();
+      const row = payload.new as NotificationItem;
+      if (row?.title) showLocalNotification(row.title, row.body);
+    };
+
     void load();
     const channel = supabase
       .channel(`notifications-${courier.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "notifications",
+          filter: `courier_id=eq.${courier.id}`,
+        },
+        onInsert
+      )
       .on("postgres_changes", { event: "*", schema: "public", table: "notifications" }, () => void load())
       .subscribe();
 
@@ -88,9 +118,29 @@ export default function Notifications() {
 
       <div className="mt-8 rounded-2xl border border-dashed border-primary/30 bg-primary/5 p-4 text-center">
         <Bell className="mx-auto h-5 w-5 text-primary" />
-        <p className="mt-2 text-xs text-muted-foreground">
-          Les notifications push s'activeront automatiquement une fois l'app installée et l'autorisation accordée.
-        </p>
+        {!installed ? (
+          <p className="mt-2 text-xs text-muted-foreground">
+            Installe d'abord l'application (bannière en bas de l'écran) pour activer les alertes push.
+          </p>
+        ) : pushPermission === "granted" ? (
+          <p className="mt-2 text-xs text-muted-foreground">Notifications push activées pour cette appareil.</p>
+        ) : pushPermission === "denied" ? (
+          <p className="mt-2 text-xs text-muted-foreground">
+            Notifications bloquées. Autorise-les dans les réglages du navigateur ou du téléphone.
+          </p>
+        ) : (
+          <>
+            <p className="mt-2 text-xs text-muted-foreground">
+              Autorise les notifications pour recevoir les alertes de tournée en temps réel.
+            </p>
+            <Button
+              onClick={() => void enableNotifications()}
+              className="mt-3 h-9 rounded-full bg-primary px-4 text-xs text-primary-foreground hover:bg-primary/90"
+            >
+              Activer les notifications
+            </Button>
+          </>
+        )}
       </div>
     </div>
   );

@@ -12,6 +12,7 @@ import History from "@/pages/History";
 import Notifications from "@/pages/Notifications";
 import Profile from "@/pages/Profile";
 import NotFound from "@/pages/NotFound";
+import { PwaInstallPrompt } from "@/components/PwaInstallPrompt";
 
 const queryClient = new QueryClient();
 
@@ -29,6 +30,7 @@ const App = () => (
       <Sonner />
       <AuthProvider>
         <BrowserRouter>
+          <PwaInstallPrompt />
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route element={<Protected><AppShell /></Protected>}>

@@ -1,6 +1,9 @@
 import { createRoot } from "react-dom/client";
+import { registerSW } from "virtual:pwa-register";
 import "./index.css";
 import MissingEnv from "./pages/MissingEnv";
+
+registerSW({ immediate: true });
 
 const hasSupabaseEnv =
   Boolean(import.meta.env.VITE_SUPABASE_URL) && Boolean(import.meta.env.VITE_SUPABASE_ANON_KEY);
