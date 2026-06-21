@@ -1,27 +1,12 @@
-import { LogOut, Phone, MapPin, Bell, type LucideIcon } from "lucide-react";
-import { useState } from "react";
+import { LogOut, Phone, MapPin, type LucideIcon } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
-import { sendTestPushNotification } from "@/lib/push";
 import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
 
 export default function Profile() {
   const { courier, signOut } = useAuth();
   const nav = useNavigate();
-  const [testingPush, setTestingPush] = useState(false);
   if (!courier) return null;
-
-  const testPush = async () => {
-    setTestingPush(true);
-    const result = await sendTestPushNotification(courier.id);
-    setTestingPush(false);
-    if (!result.ok) {
-      toast.error("Impossible d'envoyer le test push. Active les notifications dans Alertes.");
-      return;
-    }
-    toast.success("Notification test envoyée");
-  };
 
   return (
     <div className="px-5 pb-10 pt-5 animate-fade-up">
@@ -39,16 +24,6 @@ export default function Profile() {
         <Info icon={Phone} label="Téléphone" value={courier.phone} />
         <Info icon={MapPin} label="Zone de tournée" value={courier.zone} />
       </div>
-
-      <Button
-        onClick={() => void testPush()}
-        disabled={testingPush}
-        variant="outline"
-        className="mt-8 h-12 w-full rounded-full border-primary/40 text-primary hover:bg-primary/10"
-      >
-        <Bell className="mr-2 h-4 w-4" />
-        {testingPush ? "Envoi…" : "Tester la notification push"}
-      </Button>
 
       <Button
         onClick={() => {
