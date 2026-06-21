@@ -6,7 +6,6 @@ import { DeliveryCard } from "@/components/DeliveryCard";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { STATUS_LABEL, type DeliveryStatus } from "@/lib/deliveryTypes";
-import { detectMarketCountry, formatCashCompact } from "@/lib/currency";
 
 const FILTERS: { key: "all" | "actives" | DeliveryStatus; label: string }[] = [
   { key: "actives", label: "Actives" },
@@ -41,11 +40,6 @@ export default function Dashboard() {
 
   const active = deliveries.filter((d) => !["livre", "echec", "retour"].includes(d.status)).length;
   const done = deliveries.filter((d) => d.status === "livre").length;
-  const market = detectMarketCountry(courier?.zone);
-  const cash = deliveries
-    .filter((d) => d.payment_method === "especes" && d.status !== "livre")
-    .reduce((s, d) => s + d.amount_to_collect_fcfa, 0);
-  const cashDisplay = formatCashCompact(cash, market);
 
   return (
     <div className="px-5 pb-6 pt-5 animate-fade-up">
@@ -59,10 +53,9 @@ export default function Dashboard() {
         <p className="mt-1 text-sm text-muted-foreground">{courier?.zone}</p>
       </div>
 
-      <div className="mt-5 grid grid-cols-3 gap-2">
+      <div className="mt-5 grid grid-cols-2 gap-2">
         <Stat label="Actives" value={active} />
         <Stat label="Livrées" value={done} />
-        <Stat label="Cash à collecter" value={cashDisplay.value} suffix={cashDisplay.suffix} />
       </div>
 
       <div className="mt-5 flex items-center gap-2">
@@ -112,18 +105,11 @@ export default function Dashboard() {
   );
 }
 
-function Stat({ label, value, suffix }: { label: string; value: number | string; suffix?: string }) {
+function Stat({ label, value }: { label: string; value: number | string }) {
   return (
     <div className="rounded-2xl border border-border/60 bg-card/60 p-3">
       <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</p>
-      <p className="mt-1 font-display text-2xl leading-none text-foreground">
-        <span className="inline-flex flex-wrap items-baseline gap-x-1.5">
-          <span>{value}</span>
-          {suffix && (
-            <span className="text-[10px] uppercase tracking-wider text-muted-foreground">{suffix}</span>
-          )}
-        </span>
-      </p>
+      <p className="mt-1 font-display text-2xl leading-none text-foreground">{value}</p>
     </div>
   );
 }

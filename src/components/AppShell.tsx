@@ -19,12 +19,15 @@ export default function AppShell() {
     <div className="mx-auto flex h-full max-w-md flex-col bg-warm">
       <header className="safe-top sticky top-0 z-30 border-b border-border/60 bg-background/85 px-5 py-3 backdrop-blur-lg">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <img src={logo} alt="The Sister Africa" className="h-8 w-8" width={32} height={32} />
-            <div className="leading-tight">
-              <p className="font-display text-lg italic text-primary">The Sister Africa</p>
-              <p className="-mt-1 text-[10px] uppercase tracking-[0.22em] text-muted-foreground">Delivery</p>
-            </div>
+          <div className="flex items-center gap-3">
+            <img
+              src={logo}
+              alt="The Sister Africa"
+              className="h-11 w-11 shrink-0 object-contain"
+              width={44}
+              height={44}
+            />
+            <p className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground">Delivery</p>
           </div>
           {courier && (
             <div className="text-right leading-tight">

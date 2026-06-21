@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
-import { Loader2, Lock, IdCard } from "lucide-react";
+import { Eye, EyeOff, Loader2, Lock, IdCard } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +13,7 @@ export default function Login() {
   const navigate = useNavigate();
   const [badge, setBadge] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
   if (courier) return <Navigate to="/" replace />;
@@ -31,12 +32,18 @@ export default function Login() {
     <div className="bg-warm flex min-h-full flex-col px-6 pb-10 pt-16">
       <div className="mx-auto w-full max-w-sm flex-1 animate-fade-up">
         <div className="flex flex-col items-center text-center">
-          <img src={logo} alt="The Sister Africa" width={64} height={64} className="h-16 w-16" />
+          <img
+            src={logo}
+            alt="The Sister Africa"
+            width={96}
+            height={96}
+            className="h-24 w-24 object-contain"
+          />
           <p className="mt-5 text-[11px] uppercase tracking-[0.3em] text-primary/80">
             Powered by The Sisters
           </p>
           <h1 className="mt-3 font-display text-4xl leading-tight">
-            Espace <em className="text-primary not-italic">coursier</em>
+            Espace <em className="text-primary not-italic">de livraison</em>
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
             Connectez-vous avec le badge livreur créé par l'administration pour démarrer votre tournée.
@@ -70,15 +77,23 @@ export default function Login() {
               <Lock className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 id="password"
-                type="password"
+                type={showPassword ? "text" : "password"}
                 autoComplete="current-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="h-12 rounded-xl border-border/70 bg-input/50 pl-10"
+                className="h-12 rounded-xl border-border/70 bg-input/50 pl-10 pr-11"
                 required
                 minLength={4}
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword((v) => !v)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1 text-muted-foreground hover:text-foreground"
+                aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+              >
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
             </div>
           </div>
 
@@ -89,10 +104,6 @@ export default function Login() {
           >
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Se connecter"}
           </Button>
-
-          <p className="pt-2 text-center text-[11px] text-muted-foreground">
-            Connexion sécurisée via Supabase.
-          </p>
         </form>
       </div>
 

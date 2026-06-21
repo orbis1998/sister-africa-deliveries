@@ -6,7 +6,6 @@ import {
   MessageSquare,
   Navigation,
   Package,
-  Wallet,
   StickyNote,
   CheckCircle2,
   XCircle,
@@ -16,7 +15,6 @@ import {
 import { useAuth } from "@/lib/auth";
 import { useDelivery, updateDeliveryStatus } from "@/lib/deliveries";
 import { formatDateTime, STATUS_LABEL, type DeliveryStatus } from "@/lib/deliveryTypes";
-import { detectMarketCountry, formatCashAmount } from "@/lib/currency";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -69,9 +67,9 @@ export default function DeliveryDetail() {
     );
   }
 
-  const market = detectMarketCountry(d.city, d.neighborhood, courier?.zone);
   const next = NEXT[d.status] ?? [];
   const isClosed = ["livre", "echec", "retour"].includes(d.status);
+  const whatsAppHref = `https://wa.me/${d.recipient_phone.replace(/\D/g, "")}`;
 
   const advance = async (status: DeliveryStatus) => {
     if (status === "livre") return setProofOpen(true);
@@ -117,8 +115,13 @@ export default function DeliveryDetail() {
           <a href={`tel:${d.recipient_phone}`} className="flex flex-col items-center gap-1 rounded-2xl border border-border/60 bg-card/60 py-3 text-xs text-foreground active:scale-95 transition">
             <Phone className="h-4 w-4 text-primary" /> Appeler
           </a>
-          <a href={`sms:${d.recipient_phone}`} className="flex flex-col items-center gap-1 rounded-2xl border border-border/60 bg-card/60 py-3 text-xs text-foreground active:scale-95 transition">
-            <MessageSquare className="h-4 w-4 text-primary" /> SMS
+          <a
+            href={whatsAppHref}
+            target="_blank"
+            rel="noreferrer"
+            className="flex flex-col items-center gap-1 rounded-2xl border border-border/60 bg-card/60 py-3 text-xs text-foreground active:scale-95 transition"
+          >
+            <MessageSquare className="h-4 w-4 text-primary" /> WhatsApp
           </a>
           <a
             href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(d.address_line + " " + d.city)}`}
@@ -133,21 +136,6 @@ export default function DeliveryDetail() {
           <Row label="Produit" value={d.product_summary} />
           <Row label="Articles" value={`${d.items_count}`} />
           <Row label="Programmée" value={formatDateTime(d.scheduled_for)} />
-        </Section>
-
-        <Section title="Paiement" icon={Wallet}>
-          <Row
-            label="Méthode"
-            value={
-              d.payment_method === "especes" ? "Espèces (cash)" :
-              d.payment_method === "mobile_money" ? "Mobile Money" : "Déjà payée"
-            }
-          />
-          <Row
-            label="À collecter"
-            value={d.payment_method === "paye" ? "—" : formatCashAmount(d.amount_to_collect_fcfa, market)}
-            highlight={d.payment_method !== "paye"}
-          />
         </Section>
 
         {d.notes && (
