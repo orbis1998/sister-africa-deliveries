@@ -4,7 +4,7 @@ import { useAuth } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { requestPushPermission, showLocalNotification, usePwaInstall } from "@/hooks/use-pwa-install";
-import { isVapidConfigured, isWebPushSupported, subscribeToWebPush } from "@/lib/push";
+import { isVapidConfigured, isWebPushSupported, refreshWebPushSubscription, subscribeToWebPush } from "@/lib/push";
 import { toast } from "sonner";
 
 interface NotificationItem {
@@ -53,9 +53,12 @@ export default function Notifications() {
   };
 
   useEffect(() => {
-    if (!courier?.id || Notification.permission !== "granted") return;
+    if (!courier?.id) return;
     if (!isWebPushSupported() || !isVapidConfigured()) return;
-    void subscribeToWebPush(courier.id).then((r) => setPushReady(r === "granted"));
+    void refreshWebPushSubscription(courier.id).then((r) => {
+      if (r === "granted") setPushReady(true);
+      if ("Notification" in window) setPushPermission(Notification.permission);
+    });
   }, [courier?.id]);
 
   useEffect(() => {

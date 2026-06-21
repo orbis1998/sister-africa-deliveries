@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { type Courier } from "./deliveryTypes";
 import { supabase } from "./supabase";
+import { refreshWebPushSubscription, subscribeToWebPush } from "./push";
 
 interface AuthState {
   courier: Courier | null;
@@ -31,6 +32,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLoading(false);
   }, []);
 
+  useEffect(() => {
+    if (!courier?.id || loading) return;
+    void refreshWebPushSubscription(courier.id);
+  }, [courier?.id, loading]);
+
   const signIn: AuthState["signIn"] = async (badgeId, password) => {
     if (!badgeId.trim() || password.length < 4) {
       return { error: "Identifiants invalides." };
@@ -57,6 +63,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     localStorage.setItem(STORAGE_KEY, JSON.stringify(result.courier));
     setCourier(result.courier);
+    void subscribeToWebPush(result.courier.id);
     return {};
   };
 
