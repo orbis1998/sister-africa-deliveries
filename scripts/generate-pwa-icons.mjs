@@ -3,36 +3,41 @@ import sharp from "sharp";
 
 const headerLogo = "src/assets/logo-ts.png";
 const appIcon192 = "public/app-icon-192.png";
-const appIcon512 = "public/app-icon-512.png";
 const splash192 = "public/splash-icon-192.png";
-const splash512 = "public/splash-icon-512.png";
-const notification192 = "public/notification-icon-192.png";
+const publicLogo = "public/logo-ts.png";
 const bg = { r: 37, g: 28, b: 24, alpha: 1 }; // #251C18
 
-// Keep existing brown-square icons as installed app icons (opening/home screen look).
+// App icon on phone = brown square (icon-192.png).
 try {
   await fs.copyFile("public/icon-192.png", appIcon192);
-  await fs.copyFile("public/icon-512.png", appIcon512);
-  console.log("App icons copied from public/icon-192.png and icon-512.png");
+  console.log("App icon: public/app-icon-192.png");
 } catch {
-  console.warn("Missing public/icon-192.png — run after adding app icons");
+  console.warn("Missing public/icon-192.png");
 }
 
-for (const [size, out] of [
-  [192, splash192],
-  [512, splash512],
-  [192, notification192],
-]) {
+// Logo header for splash, notifications, and in-app static URLs.
+await fs.copyFile(headerLogo, publicLogo);
+console.log("Copied public/logo-ts.png");
+
+for (const out of [splash192]) {
   await sharp(headerLogo)
-    .resize(Math.round(size * 0.72), Math.round(size * 0.72), { fit: "contain", background: bg })
-    .extend({
-      top: Math.round(size * 0.14),
-      bottom: Math.round(size * 0.14),
-      left: Math.round(size * 0.14),
-      right: Math.round(size * 0.14),
-      background: bg,
-    })
+    .resize(138, 138, { fit: "contain", background: bg })
+    .extend({ top: 27, bottom: 27, left: 27, right: 27, background: bg })
     .png()
     .toFile(out);
   console.log(`Generated ${out}`);
+}
+
+// Remove unused 512 assets.
+for (const file of [
+  "public/icon-512.png",
+  "public/app-icon-512.png",
+  "public/splash-icon-512.png",
+]) {
+  try {
+    await fs.unlink(file);
+    console.log(`Removed ${file}`);
+  } catch {
+    /* already gone */
+  }
 }

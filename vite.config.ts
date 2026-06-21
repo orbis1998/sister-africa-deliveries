@@ -17,14 +17,7 @@ export default defineConfig(({ mode }) => ({
     VitePWA({
       registerType: "autoUpdate",
       injectRegister: "auto",
-      includeAssets: [
-        "app-icon-192.png",
-        "app-icon-512.png",
-        "splash-icon-192.png",
-        "splash-icon-512.png",
-        "notification-icon-192.png",
-        "robots.txt",
-      ],
+      includeAssets: ["app-icon-192.png", "splash-icon-192.png", "logo-ts.png", "robots.txt"],
       manifest: {
         id: "/",
         name: "The Sister Africa Delivery",
@@ -46,20 +39,8 @@ export default defineConfig(({ mode }) => ({
             purpose: "any",
           },
           {
-            src: "splash-icon-512.png",
-            sizes: "512x512",
-            type: "image/png",
-            purpose: "any",
-          },
-          {
             src: "app-icon-192.png",
             sizes: "192x192",
-            type: "image/png",
-            purpose: "maskable",
-          },
-          {
-            src: "app-icon-512.png",
-            sizes: "512x512",
             type: "image/png",
             purpose: "maskable",
           },
