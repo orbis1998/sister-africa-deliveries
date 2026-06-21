@@ -74,8 +74,8 @@ export function showLocalNotification(title: string, body: string) {
   if (!("Notification" in window) || Notification.permission !== "granted") return;
   const options: NotificationOptions = {
     body,
-    icon: "/logo-ts.png",
-    badge: "/logo-ts.png",
+    icon: "/app-icon-192.png",
+    badge: "/app-icon-192.png",
     tag: "tsa-delivery",
     data: { url: "/notifications" },
     renotify: true,
