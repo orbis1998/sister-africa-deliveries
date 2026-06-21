@@ -11,7 +11,7 @@
   "theme_color": "#251C18",
   "lang": "fr",
   "icons": [
-    { "src": "/splash-icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/logo-ts.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
     { "src": "/app-icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" }
   ]
 }

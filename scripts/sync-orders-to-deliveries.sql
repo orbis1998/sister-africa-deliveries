@@ -4,6 +4,10 @@
 alter table public.deliveries
   add column if not exists order_id uuid unique references public.orders(id) on delete cascade;
 
+alter table public.deliveries
+  add column if not exists product_amount_fcfa integer not null default 0 check (product_amount_fcfa >= 0),
+  add column if not exists delivery_fee_fcfa integer not null default 0 check (delivery_fee_fcfa >= 0);
+
 create index if not exists deliveries_order_id_idx on public.deliveries(order_id);
 
 create or replace function public.order_items_summary(p_items jsonb)
@@ -137,6 +141,8 @@ declare
   v_courier_id uuid;
   v_delivery_id uuid;
   v_is_new boolean := false;
+  v_product_amount integer;
+  v_delivery_fee integer;
   v_amount integer;
 begin
   select * into o from public.orders where id = p_order_id;
@@ -157,11 +163,19 @@ begin
     return null;
   end if;
 
-  v_amount := case
-    when o.country_code = 'CG' then o.total_fcfa
-    when o.total_fcfa > 0 then o.total_fcfa
+  v_product_amount := case
+    when o.country_code = 'CG' then coalesce(o.total_fcfa, 0)
+    when coalesce(o.total_fcfa, 0) > 0 then o.total_fcfa
     else greatest((coalesce(o.total_usd, 0) * 2800)::int, 0)
   end;
+
+  v_delivery_fee := case
+    when o.country_code = 'CG' then coalesce(o.delivery_fee_fcfa, 0)
+    when coalesce(o.delivery_fee_fcfa, 0) > 0 then o.delivery_fee_fcfa
+    else greatest((coalesce(o.delivery_fee_usd, 0) * 2800)::int, 0)
+  end;
+
+  v_amount := v_product_amount + v_delivery_fee;
 
   select d.id
     into v_delivery_id
@@ -183,6 +197,8 @@ begin
     neighborhood,
     product_summary,
     items_count,
+    product_amount_fcfa,
+    delivery_fee_fcfa,
     amount_to_collect_fcfa,
     payment_method,
     notes,
@@ -199,8 +215,10 @@ begin
     coalesce(nullif(trim(o.commune), ''), '—'),
     public.order_items_summary(o.items),
     public.order_items_count(o.items),
+    v_product_amount,
+    v_delivery_fee,
     v_amount,
-    'paye'::public.payment_method,
+    'especes'::public.payment_method,
     nullif(trim(coalesce(o.notes, '')), ''),
     v_courier_id
   )
@@ -215,6 +233,8 @@ begin
     neighborhood = excluded.neighborhood,
     product_summary = excluded.product_summary,
     items_count = excluded.items_count,
+    product_amount_fcfa = excluded.product_amount_fcfa,
+    delivery_fee_fcfa = excluded.delivery_fee_fcfa,
     amount_to_collect_fcfa = excluded.amount_to_collect_fcfa,
     payment_method = excluded.payment_method,
     notes = excluded.notes,
@@ -277,6 +297,8 @@ after insert or update of
   items,
   total_fcfa,
   total_usd,
+  delivery_fee_fcfa,
+  delivery_fee_usd,
   order_number
 on public.orders
 for each row

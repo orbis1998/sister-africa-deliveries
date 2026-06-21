@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { useDelivery, updateDeliveryStatus } from "@/lib/deliveries";
-import { formatDateTime, STATUS_LABEL, type DeliveryStatus } from "@/lib/deliveryTypes";
+import { formatDateTime, formatFCFA, getDeliveryAmountBreakdown, STATUS_LABEL, type DeliveryStatus } from "@/lib/deliveryTypes";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -70,6 +70,7 @@ export default function DeliveryDetail() {
   const next = NEXT[d.status] ?? [];
   const isClosed = ["livre", "echec", "retour"].includes(d.status);
   const whatsAppHref = `https://wa.me/${d.recipient_phone.replace(/\D/g, "")}`;
+  const amounts = getDeliveryAmountBreakdown(d);
 
   const advance = async (status: DeliveryStatus) => {
     if (status === "livre") return setProofOpen(true);
@@ -136,6 +137,10 @@ export default function DeliveryDetail() {
           <Row label="Produit" value={d.product_summary} />
           <Row label="Articles" value={`${d.items_count}`} />
           <Row label="Programmée" value={formatDateTime(d.scheduled_for)} />
+          <div className="my-3 border-t border-border/60" />
+          <Row label="Prix article" value={formatFCFA(amounts.product)} />
+          <Row label="Frais de livraison" value={formatFCFA(amounts.deliveryFee)} />
+          <Row label="Total à encaisser" value={formatFCFA(amounts.total)} highlight />
         </Section>
 
         {d.notes && (

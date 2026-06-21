@@ -58,6 +58,8 @@ export interface Delivery {
   geo?: { lat: number; lng: number };
   product_summary: string;
   items_count: number;
+  product_amount_fcfa: number;
+  delivery_fee_fcfa: number;
   amount_to_collect_fcfa: number;
   payment_method: "especes" | "mobile_money" | "paye";
   notes?: string;
@@ -67,6 +69,23 @@ export interface Delivery {
 
 export const formatFCFA = (n: number) =>
   `${new Intl.NumberFormat("fr-FR").format(n)} CFA`;
+
+export function getDeliveryAmountBreakdown(d: Pick<
+  Delivery,
+  "product_amount_fcfa" | "delivery_fee_fcfa" | "amount_to_collect_fcfa"
+>) {
+  const product = d.product_amount_fcfa ?? 0;
+  const deliveryFee = d.delivery_fee_fcfa ?? 0;
+  const hasBreakdown = product > 0 || deliveryFee > 0;
+
+  if (!hasBreakdown) {
+    const total = d.amount_to_collect_fcfa ?? 0;
+    return { product: total, deliveryFee: 0, total };
+  }
+
+  const total = product + deliveryFee || d.amount_to_collect_fcfa;
+  return { product, deliveryFee, total };
+}
 
 export const formatDateTime = (iso: string) =>
   new Date(iso).toLocaleString("fr-FR", {

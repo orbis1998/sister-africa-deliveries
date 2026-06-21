@@ -14,8 +14,15 @@ const selectDelivery = "*, events:delivery_events(*)";
 
 function mapDelivery(row: DeliveryRow): Delivery {
   const events = row.events ?? row.delivery_events ?? [];
+  const productAmount = row.product_amount_fcfa ?? 0;
+  const deliveryFee = row.delivery_fee_fcfa ?? 0;
+  const amount = row.amount_to_collect_fcfa ?? 0;
+
   return {
     ...row,
+    product_amount_fcfa: productAmount || (deliveryFee ? 0 : amount),
+    delivery_fee_fcfa: deliveryFee,
+    amount_to_collect_fcfa: amount || productAmount + deliveryFee,
     events: [...events].sort((a, b) => +new Date(a.at) - +new Date(b.at)),
   };
 }

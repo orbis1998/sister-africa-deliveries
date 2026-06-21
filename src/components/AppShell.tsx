@@ -1,5 +1,6 @@
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { Home, History as HistoryIcon, Bell, User } from "lucide-react";
+import logo from "@/assets/logo-ts.png";
 import { useAuth } from "@/lib/auth";
 
 const tabs = [
@@ -20,9 +21,9 @@ export default function AppShell() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <img
-              src="/app-icon-192.png"
+              src={logo}
               alt="The Sister Africa"
-              className="h-11 w-11 shrink-0 rounded-xl object-contain"
+              className="h-11 w-11 shrink-0 object-contain"
               width={44}
               height={44}
             />
