@@ -7,7 +7,9 @@ const publicLogo = "public/logo-ts.png";
 // App icon on phone = brown square (icon-192.png).
 try {
   await fs.copyFile("public/icon-192.png", appIcon192);
+  await fs.copyFile(appIcon192, "public/favicon.ico");
   console.log("App icon: public/app-icon-192.png");
+  console.log("Favicon: public/favicon.ico");
 } catch {
   console.warn("Missing public/icon-192.png");
 }
