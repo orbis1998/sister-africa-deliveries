@@ -22,7 +22,6 @@ immutable
 as $$
   select case
     when o.country_code = 'CG' then coalesce(o.delivery_fee_fcfa, 0)
-    when coalesce(o.delivery_fee_usd, 0) > 0 then greatest((o.delivery_fee_usd * 2800)::int, 0)
     else coalesce(o.delivery_fee_fcfa, 0)
   end;
 $$;

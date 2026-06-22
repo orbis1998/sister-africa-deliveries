@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { useDelivery, updateDeliveryStatus } from "@/lib/deliveries";
-import { formatDeliveryAmount } from "@/lib/currency";
+import { formatDeliveryColisAmounts } from "@/lib/currency";
 import { formatDateTime, getDeliveryAmountBreakdown, STATUS_LABEL, type DeliveryStatus } from "@/lib/deliveryTypes";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
@@ -72,7 +72,7 @@ export default function DeliveryDetail() {
   const isClosed = ["livre", "echec", "retour"].includes(d.status);
   const whatsAppHref = `https://wa.me/${d.recipient_phone.replace(/\D/g, "")}`;
   const amounts = getDeliveryAmountBreakdown(d);
-  const fmtAmount = (amount: number) => formatDeliveryAmount(amount, d, courier ?? undefined);
+  const priced = formatDeliveryColisAmounts(amounts, d, courier ?? undefined);
 
   const advance = async (status: DeliveryStatus) => {
     if (status === "livre") return setProofOpen(true);
@@ -140,9 +140,9 @@ export default function DeliveryDetail() {
           <Row label="Articles" value={`${d.items_count}`} />
           <Row label="Programmée" value={formatDateTime(d.scheduled_for)} />
           <div className="my-3 border-t border-border/60" />
-          <Row label="Prix article" value={fmtAmount(amounts.product)} />
-          <Row label="Frais de livraison" value={fmtAmount(amounts.deliveryFee)} />
-          <Row label="Total à encaisser" value={fmtAmount(amounts.total)} highlight />
+          <Row label="Prix article" value={priced.product} />
+          <Row label="Frais de livraison" value={priced.deliveryFee} />
+          <Row label="Total à encaisser" value={priced.total} highlight />
         </Section>
 
         {d.notes && (

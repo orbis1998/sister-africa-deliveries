@@ -90,6 +90,45 @@ export function formatDeliveryAmount(
   return formatCashAmount(amount, marketForDelivery(delivery, courier));
 }
 
+export function formatCdf(amount: number): string {
+  return `${new Intl.NumberFormat("fr-FR").format(amount)} CDF`;
+}
+
+export function formatUsdFromProductStorage(amount: number): string {
+  const usd = amount / CDF_PER_USD;
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: usd >= 100 ? 0 : 2,
+    maximumFractionDigits: usd >= 100 ? 0 : 2,
+  }).format(usd);
+}
+
+/** RDC: product in USD, delivery fee in CDF, total as "USD + CDF". */
+export function formatRdcAmountBreakdown(productStored: number, deliveryCdf: number) {
+  const product = formatUsdFromProductStorage(productStored);
+  const deliveryFee = formatCdf(deliveryCdf);
+  const total =
+    deliveryCdf > 0 ? `${product} + ${deliveryFee}` : product;
+  return { product, deliveryFee, total };
+}
+
+export function formatDeliveryColisAmounts(
+  amounts: { product: number; deliveryFee: number },
+  delivery: { country_code?: string | null; city?: string; neighborhood?: string },
+  courier?: { zone?: string },
+) {
+  const market = marketForDelivery(delivery, courier);
+  if (market === "CG") {
+    return {
+      product: formatCashAmount(amounts.product, "CG"),
+      deliveryFee: formatCashAmount(amounts.deliveryFee, "CG"),
+      total: formatCashAmount(amounts.product + amounts.deliveryFee, "CG"),
+    };
+  }
+  return formatRdcAmountBreakdown(amounts.product, amounts.deliveryFee);
+}
+
 export function formatCashAmount(amount: number, country: MarketCountry): string {
   if (country === "CG") {
     return `${new Intl.NumberFormat("fr-FR").format(amount)} CFA`;
