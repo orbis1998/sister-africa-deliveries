@@ -6,7 +6,8 @@ alter table public.deliveries
 
 alter table public.deliveries
   add column if not exists product_amount_fcfa integer not null default 0 check (product_amount_fcfa >= 0),
-  add column if not exists delivery_fee_fcfa integer not null default 0 check (delivery_fee_fcfa >= 0);
+  add column if not exists delivery_fee_fcfa integer not null default 0 check (delivery_fee_fcfa >= 0),
+  add column if not exists country_code text;
 
 create index if not exists deliveries_order_id_idx on public.deliveries(order_id);
 
@@ -75,6 +76,29 @@ begin
 
   return coalesce(p_created_at, now()) + interval '1 day';
 end;
+$$;
+
+create or replace function public.order_product_amount(o public.orders)
+returns integer
+language sql
+immutable
+as $$
+  select case
+    when o.country_code = 'CG' then coalesce(o.total_fcfa, 0)
+    else greatest((coalesce(o.total_usd, 0) * 2800)::int, 0)
+  end;
+$$;
+
+create or replace function public.order_delivery_fee_amount(o public.orders)
+returns integer
+language sql
+immutable
+as $$
+  select case
+    when o.country_code = 'CG' then coalesce(o.delivery_fee_fcfa, 0)
+    when coalesce(o.delivery_fee_usd, 0) > 0 then greatest((o.delivery_fee_usd * 2800)::int, 0)
+    else coalesce(o.delivery_fee_fcfa, 0)
+  end;
 $$;
 
 create or replace function public.order_status_to_delivery(p_status public.order_status)
@@ -163,18 +187,8 @@ begin
     return null;
   end if;
 
-  v_product_amount := case
-    when o.country_code = 'CG' then coalesce(o.total_fcfa, 0)
-    when coalesce(o.total_fcfa, 0) > 0 then o.total_fcfa
-    else greatest((coalesce(o.total_usd, 0) * 2800)::int, 0)
-  end;
-
-  v_delivery_fee := case
-    when o.country_code = 'CG' then coalesce(o.delivery_fee_fcfa, 0)
-    when coalesce(o.delivery_fee_fcfa, 0) > 0 then o.delivery_fee_fcfa
-    else greatest((coalesce(o.delivery_fee_usd, 0) * 2800)::int, 0)
-  end;
-
+  v_product_amount := public.order_product_amount(o);
+  v_delivery_fee := public.order_delivery_fee_amount(o);
   v_amount := v_product_amount + v_delivery_fee;
 
   select d.id
@@ -200,6 +214,7 @@ begin
     product_amount_fcfa,
     delivery_fee_fcfa,
     amount_to_collect_fcfa,
+    country_code,
     payment_method,
     notes,
     courier_id
@@ -218,6 +233,7 @@ begin
     v_product_amount,
     v_delivery_fee,
     v_amount,
+    o.country_code,
     'especes'::public.payment_method,
     nullif(trim(coalesce(o.notes, '')), ''),
     v_courier_id
@@ -236,6 +252,7 @@ begin
     product_amount_fcfa = excluded.product_amount_fcfa,
     delivery_fee_fcfa = excluded.delivery_fee_fcfa,
     amount_to_collect_fcfa = excluded.amount_to_collect_fcfa,
+    country_code = excluded.country_code,
     payment_method = excluded.payment_method,
     notes = excluded.notes,
     courier_id = excluded.courier_id
@@ -299,6 +316,7 @@ after insert or update of
   total_usd,
   delivery_fee_fcfa,
   delivery_fee_usd,
+  country_code,
   order_number
 on public.orders
 for each row

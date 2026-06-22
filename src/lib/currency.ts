@@ -73,6 +73,23 @@ export function detectMarketCountry(...parts: (string | undefined | null)[]): Ma
   return "RDC";
 }
 
+export function marketForDelivery(
+  delivery: { country_code?: string | null; city?: string; neighborhood?: string },
+  courier?: { zone?: string },
+): MarketCountry {
+  if (delivery.country_code === "CG") return "CG";
+  if (delivery.country_code === "CD") return "RDC";
+  return detectMarketCountry(courier?.zone, delivery.city, delivery.neighborhood);
+}
+
+export function formatDeliveryAmount(
+  amount: number,
+  delivery: { country_code?: string | null; city?: string; neighborhood?: string },
+  courier?: { zone?: string },
+): string {
+  return formatCashAmount(amount, marketForDelivery(delivery, courier));
+}
+
 export function formatCashAmount(amount: number, country: MarketCountry): string {
   if (country === "CG") {
     return `${new Intl.NumberFormat("fr-FR").format(amount)} CFA`;

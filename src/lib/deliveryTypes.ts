@@ -62,6 +62,7 @@ export interface Delivery {
   delivery_fee_fcfa: number;
   amount_to_collect_fcfa: number;
   payment_method: "especes" | "mobile_money" | "paye";
+  country_code?: string | null;
   notes?: string;
   courier_id: string;
   events: DeliveryEvent[];
